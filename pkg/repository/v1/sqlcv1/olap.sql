@@ -1170,3 +1170,20 @@ WHERE
     AND lt.tenant_id = @tenantId::uuid
 LIMIT 10000
 ;
+
+-- name: CreateEvent :one
+INSERT INTO v1_events_olap (
+    tenant_id,
+    generated_at,
+    key,
+    payload,
+    additional_metadata
+)
+VALUES (
+    @tenantId::UUID,
+    @generatedAt::TIMESTAMPTZ,
+    @key::TEXT,
+    @payload::JSONB,
+    sqlc.narg('additionalMetadata')::JSONB
+)
+RETURNING *;
