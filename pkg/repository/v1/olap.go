@@ -209,7 +209,7 @@ type OLAPRepository interface {
 	ListTasksByExternalIds(ctx context.Context, tenantId string, externalIds []string) ([]*sqlcv1.FlattenTasksByExternalIdsRow, error)
 
 	CreateEvent(ctx context.Context, tenantId string, event sqlcv1.CreateEventParams) (*sqlcv1.V1EventsOlap, error)
-	BulkCreateEventTriggers(ctx context.Context, tenantId string, events sqlcv1.BulkCreateEventTriggersParams) error
+	BulkCreateEventTriggers(ctx context.Context, tenantId string, events sqlcv1.BulkCreateEventTriggersParams) ([]*sqlcv1.V1EventToRunOlap, error)
 }
 
 type OLAPRepositoryImpl struct {
@@ -1273,6 +1273,6 @@ func (r *OLAPRepositoryImpl) CreateEvent(ctx context.Context, tenantId string, e
 	return r.queries.CreateEvent(ctx, r.pool, event)
 }
 
-func (r *OLAPRepositoryImpl) BulkCreateEventTriggers(ctx context.Context, tenantId string, events sqlcv1.BulkCreateEventTriggersParams) error {
+func (r *OLAPRepositoryImpl) BulkCreateEventTriggers(ctx context.Context, tenantId string, events sqlcv1.BulkCreateEventTriggersParams) ([]*sqlcv1.V1EventToRunOlap, error) {
 	return r.queries.BulkCreateEventTriggers(ctx, r.pool, events)
 }

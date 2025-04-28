@@ -1188,7 +1188,7 @@ VALUES (
 )
 RETURNING *;
 
--- name: BulkCreateEventTriggers :exec
+-- name: BulkCreateEventTriggers :many
 WITH inputs AS (
     SELECT
         UNNEST(@eventIds::BIGINT[]) AS event_id,
@@ -1208,5 +1208,5 @@ SELECT
     i.event_id,
     i.event_inserted_at
 FROM inputs i
-JOIN v1_lookup_table_olap lt ON lt.external_id = i.run_external_id
-;
+LEFT JOIN v1_lookup_table_olap lt ON lt.external_id = i.run_external_id
+RETURNING *;
