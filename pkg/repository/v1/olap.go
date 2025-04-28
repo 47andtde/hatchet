@@ -207,6 +207,8 @@ type OLAPRepository interface {
 	// ListTasksByExternalIds returns a list of tasks based on their external ids or the external id of their parent DAG.
 	// In the case of a DAG, we flatten the result into the list of tasks which belong to that DAG.
 	ListTasksByExternalIds(ctx context.Context, tenantId string, externalIds []string) ([]*sqlcv1.FlattenTasksByExternalIdsRow, error)
+
+	CreateEvent(ctx context.Context, tenantId string, event sqlcv1.CreateEventParams) (*sqlcv1.V1EventsOlap, error)
 }
 
 type OLAPRepositoryImpl struct {
@@ -1264,4 +1266,8 @@ func (r *OLAPRepositoryImpl) ListWorkflowRunDisplayNames(ctx context.Context, te
 		Tenantid:    tenantId,
 		Externalids: externalIds,
 	})
+}
+
+func (r *OLAPRepositoryImpl) CreateEvent(ctx context.Context, tenantId string, event sqlcv1.CreateEventParams) (*sqlcv1.V1EventsOlap, error) {
+	return r.queries.CreateEvent(ctx, r.pool, event)
 }
