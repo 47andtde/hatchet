@@ -189,7 +189,8 @@ def main() -> None:
             # Initialize listener variable
             listener = None
             try:
-                # Start the event listener first and wait a moment for it to connect
+                # Start the event listener first and wait a moment 
+                # for it to connect
                 logger.info("Starting event listener task")
                 listener = asyncio.create_task(
                     listen_for_worker_events(ref.workflow_run_id)

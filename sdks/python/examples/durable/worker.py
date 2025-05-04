@@ -154,39 +154,47 @@ async def communication_task(
                 # Log raw event data for debugging
                 logger.info(f"Received raw event data: {event_data}")
                 
-                # Handle both string and dict formats
-                if isinstance(event_data, str):
+                # --- MODIFIED PARSING LOGIC ---
+                actual_payload = None
+                if isinstance(event_data, dict) and 'CREATE' in event_data:
+                    event_details = event_data.get('CREATE', {})
+                    command_list = event_details.get(COMMAND_EVENT_KEY, [])
+                    if command_list and isinstance(command_list, list):
+                        # Assume the latest event is the one we want
+                        actual_payload = command_list[-1] 
+                        logger.info(f"Extracted payload: {actual_payload}")
+                    else:
+                        logger.warning(
+                            f"Could not find command list in event_data['CREATE']: "
+                            f"{event_details}"
+                        )
+                elif isinstance(event_data, dict) and "command" in event_data:
+                    # Handle case where event might be the raw payload (less likely based on logs)
+                    actual_payload = event_data
+                    logger.info(
+                        f"Using event_data directly as payload: {actual_payload}"
+                    )
+                elif isinstance(event_data, str):
                     try:
-                        command_data = json.loads(event_data)
+                        actual_payload = json.loads(event_data)
+                        logger.info(f"Parsed JSON string payload: {actual_payload}")
                     except json.JSONDecodeError:
-                        # If it's not JSON, use as raw command
-                        cmd_obj = {"command": event_data, "type": "command"}
-                        command_data = cmd_obj
-                else:
-                    # It's already a dict
-                    command_data = event_data
-                
-                # Create a simple CommandMessage for processing
-                if "command" not in command_data and isinstance(command_data, dict):
-                    # Try to find command in standard event data format
-                    command_str = "ping"  # Default command
-                    for key, value in command_data.items():
-                        if isinstance(value, dict) and "command" in value:
-                            command_str = value["command"]
-                            command_data = value
-                            break
-                    
-                    if "command" not in command_data:
-                        # Just create a simple command
-                        command_data = {
-                            "command": command_str,
-                            "data": {},
-                            "type": "command"
-                        }
-                
-                # Create command object
-                logger.info(f"Using command data: {command_data}")
-                command = CommandMessage.model_validate(command_data)
+                        logger.error(f"Received non-JSON string event data: {event_data}")
+                        # Potentially raise an error or handle as a simple command?
+                        # For now, let's try to treat it as a basic command string
+                        actual_payload = {"command": event_data, "data": {}, "type": "command"}
+                        logger.warning(f"Treating non-JSON string as basic command: {actual_payload}")
+
+                if not actual_payload:
+                    logger.error(f"Failed to extract command payload from event_data: {event_data}")
+                    # Skip this event or raise an error
+                    continue # Skip processing this event
+
+                # Validate and create command object
+                logger.info(f"Validating payload: {actual_payload}")
+                command = CommandMessage.model_validate(actual_payload)
+                # --- END MODIFIED PARSING LOGIC ---
+
                 msg_hash = command.calculate_hash()
                 
                 # Skip if already processed (deduplication)
@@ -212,9 +220,10 @@ async def communication_task(
                 import traceback
                 tb_str = traceback.format_exc()
                 logger.error(
-                    f"Failed to parse command: {str(e)}\n{tb_str}"
+                    f"Failed to parse or validate command: {str(e)}\n{tb_str}"
                 )
-                raise
+                # Decide if we should continue or break the loop on parse failure
+                continue # Skip this malformed event
             
             # Handle stop command
             if command.command.lower() == "stop":
